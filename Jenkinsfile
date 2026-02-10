@@ -1,34 +1,40 @@
 pipeline {
     agent any
-    tools{
+
+    tools {
         maven 'maven-3.9.12'
     }
+
     stages {
         stage("build jar") {
             steps {
-                script{
-                    echo "building the application..."
-                    sh 'mvn package'
-                }
+                echo "building the application..."
+                sh 'mvn package'
             }
         }
+
         stage("build image") {
             steps {
-                script{
-                    echo "building the docker image..."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh 'docker build -t bigkola1/kola-demo-app:jma-2.0 .'
-                        sh 'echo $PASS | docker login user -u $USER --password-stdin'
-                        sh 'docker push bigkola1/kola-demo-app:jma-2.0'
-                    }
+                echo "building the docker image..."
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
+                    sh '''
+                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        docker build -t bigkola1/kola-demo-app:jma-2.0 .
+                        docker push bigkola1/kola-demo-app:jma-2.0
+                    '''
                 }
             }
         }
+
         stage("deploy") {
             steps {
-                script{
-                    echo "deploying the application..."
-                }
+                echo "deploying the application..."
             }
         }
     }
