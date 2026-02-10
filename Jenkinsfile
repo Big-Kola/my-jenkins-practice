@@ -1,59 +1,33 @@
-def gv
-
 pipeline {
     agent any
-
-    parameters {
-        choice(name: 'VERSION', choices: ['1.1.0', '1.2.0', '1.3.0'], description: '')
-        booleanParam(name: 'executeTests', defaultValue: true, description: '')
+    tools{
+        maven 'maven-3.9.12'
     }
-
     stages {
-        stage("init") {
+        stage("build jar") {
             steps {
-                script {
-                    gv = load "script.groovy"
+                script{
+                    echo "building the application..."
+                    sh 'mvn package'
                 }
             }
         }
-
-        stage("build") {
+        stage("build image") {
             steps {
-                script {
-                    gv.buildApp()
+                script{
+                    echo "building the docker image..."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh 'docker build -t bigkola1/kola-demo-app:jma-2.0 .'
+                        sh 'echo $PASS | docker login user -u $USER --password-stdin'
+                        sh 'docker push bigkola1/kola-demo-app:jma-2.0'
+                    }
                 }
             }
         }
-
-        stage("test") {
-            when {
-                expression { params.executeTests }
-            }
-            steps {
-                script {
-                    gv.testApp()
-                }
-            }
-        }
-
         stage("deploy") {
             steps {
-                script {
-                    def selectedEnv = input(
-                        message: "Select the environment to deploy to",
-                        ok: "Done",
-                        parameters: [
-                            choice(
-                                name: 'ENV',
-                                choices: ['dev', 'staging', 'prod'],
-                                description: ''
-                            )
-                        ]
-                    )
-
-                    env.ENV = selectedEnv
-                    gv.deployApp()
-                    echo "Deploying to ${env.ENV}"
+                script{
+                    echo "deploying the application..."
                 }
             }
         }
