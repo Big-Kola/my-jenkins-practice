@@ -1,59 +1,35 @@
-def gv
-
 pipeline {
     agent any
-
-    parameters {
-        choice(name: 'VERSION', choices: ['1.1.0', '1.2.0', '1.3.0'], description: '')
-        booleanParam(name: 'executeTests', defaultValue: true, description: '')
-    }
-
     stages {
-        stage("init") {
-            steps {
-                script {
-                    gv = load "script.groovy"
-                }
-            }
-        }
-
-        stage("build") {
-            steps {
-                script {
-                    gv.buildApp()
-                }
-            }
-        }
-
         stage("test") {
-            when {
-                expression { params.executeTests }
-            }
             steps {
                 script {
-                    gv.testApp()
+                    echo "Testing the application"
+                    echo "Executing pipeline for branch $BRANCH_NAME"
                 }
             }
         }
-
-        stage("deploy") {
+        stage("build") {
+            when {
+                expression {
+                    BRANCH_NAME == "master"
+                }
+            }
             steps {
                 script {
-                    def selectedEnv = input(
-                        message: "Select the environment to deploy to",
-                        ok: "Done",
-                        parameters: [
-                            choice(
-                                name: 'ENV',
-                                choices: ['dev', 'staging', 'prod'],
-                                description: ''
-                            )
-                        ]
-                    )
-
-                    env.ENV = selectedEnv
-                    gv.deployApp()
-                    echo "Deploying to ${env.ENV}"
+                    echo "Building the application"
+                }
+            }
+        }
+        stage("deploy") {
+         when {
+                expression {
+                    BRANCH_NAME == "master"
+                }
+            }
+            steps {
+                script {
+                    echo "Deploying the application...}"
                 }
             }
         }
